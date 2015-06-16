@@ -33,6 +33,7 @@ void SiStripEventSummary::commissioningInfo( const uint32_t* const buffer,
   
   // Set RunType
   uint16_t run = static_cast<uint16_t>( buffer[10] & 0xFFFF );
+  std::cout<<"runtype "<<run<<" "<<buffer[10]<<std::endl;
   runType_ = SiStripEnumsAndStrings::runType(run);
 
   // Set spill number
@@ -131,6 +132,12 @@ void SiStripEventSummary::commissioningInfo( const uint32_t* const buffer,
 	  LogTrace(mlDigis_) << ss.str();
 	}
       }
+    }else if(runType_ == sistrip::DELAY_RANDOM){
+      params_[0] = buffer[11]; // pll coarse = 0 if not started, 1 if set
+      params_[1] = buffer[12]; // pll fine = step number from 0
+      params_[2] = buffer[13]; // tscFedshift
+      params_[3] = buffer[14]; // delay range
+      params_[4] = buffer[15]; // delay step size
 
     } else {
 
@@ -206,8 +213,9 @@ void SiStripEventSummary::commissioningInfo( const uint32_t& daq1,
   
   // Set RunType
   uint16_t run = static_cast<uint16_t>( daq1&0xFF );
+  std::cout<<"Run "<<run<<" daq1: "<<daq1<<" "<<daq2<<std::endl;
   runType_ = SiStripEnumsAndStrings::runType(run);
-  
+
   // Set hardware parameters
   if        ( runType_ == sistrip::PHYSICS ) { 
   } else if ( runType_ == sistrip::PHYSICS_ZS ) { 
@@ -245,6 +253,8 @@ void SiStripEventSummary::commissioningInfo( const uint32_t& daq1,
   } else if ( runType_ == sistrip::QUITE_FAST_CABLING ) { 
   } else if ( runType_ == sistrip::FAST_CABLING ) { 
     params_[0] = (daq2>>0)&0xFF; // key
+  } else if ( runType_ == sistrip::DELAY_RANDOM){
+    params_[0] = daq2;
   } else { 
     if ( edm::isDebugEnabled() ) {
       edm::LogWarning(mlDigis_)
