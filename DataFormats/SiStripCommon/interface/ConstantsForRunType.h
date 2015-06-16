@@ -35,6 +35,7 @@ namespace sistrip {
   static const char calibScanDeconRun_[]    = "CalibrationScanDeco";
   static const char daqScopeModeRun_[]      = "DaqScopeMode";
   static const char physicsRun_[]           = "Physics";
+  static const char randomDelayRun_[]           = "RandomDelayScan";
   
   // ---------- Enumerated type ---------- 
   
@@ -90,6 +91,7 @@ namespace sistrip {
       PEDS_ONLY             = 22,
       NOISE                 = 23,
       PEDS_FULL_NOISE       = 24,
+      DELAY_RANDOM       = 27,
       CALIBRATION_DECO      = 33,
       UNKNOWN_RUN_TYPE   = sistrip::unknown_,
       UNDEFINED_RUN_TYPE = sistrip::invalid_

@@ -42,6 +42,7 @@ std::string SiStripEnumsAndStrings::runType( const sistrip::RunType& run_type ) 
   else if ( run_type == sistrip::CALIBRATION_SCAN ){ return sistrip::calibScanPeakRun_; }
   else if ( run_type == sistrip::CALIBRATION_SCAN_DECO ){ return sistrip::calibScanDeconRun_; }
   else if ( run_type == sistrip::DAQ_SCOPE_MODE ){ return sistrip::daqScopeModeRun_; }
+  else if ( run_type == sistrip::DELAY_RANDOM){return sistrip::randomDelayRun_;}
   else if ( run_type == sistrip::PHYSICS ){ return sistrip::physicsRun_; }
   else if ( run_type == sistrip::UNDEFINED_RUN_TYPE ) { return sistrip::undefinedRunType_; }
   else { return sistrip::unknownRunType_; }
@@ -86,6 +87,7 @@ sistrip::RunType SiStripEnumsAndStrings::runType( const std::string& run_type ) 
   else if ( run_type == "CALIBRATION_SCAN" ) { return sistrip::CALIBRATION_SCAN; }
   else if ( run_type == "CALIBRATION_DECO" ) { return sistrip::CALIBRATION_DECO; }
   else if ( run_type == "CALIBRATION_SCAN_DECO" ) { return sistrip::CALIBRATION_SCAN_DECO; }
+  else if ( run_type == "DELAY_RANDOM") {return sistrip::DELAY_RANDOM;}
   else if ( run_type == "DAQ_SCOPE_MODE" ) { return sistrip::DAQ_SCOPE_MODE; }
   else if ( run_type == "PHYSICS" ) { return sistrip::PHYSICS; }
   else if ( run_type == "UNDEFINED" ) { return sistrip::UNDEFINED_RUN_TYPE; }
@@ -118,6 +120,7 @@ sistrip::RunType SiStripEnumsAndStrings::runType( const uint16_t& run_type ) {
   else if ( run_type == 22 ) { return sistrip::PEDS_ONLY; }
   else if ( run_type == 23 ) { return sistrip::NOISE; }
   else if ( run_type == 24 ) { return sistrip::PEDS_FULL_NOISE; }
+  else if ( run_type == 27 ) { return sistrip::DELAY_RANDOM; }
   else if ( run_type == 33 ) { return sistrip::CALIBRATION_DECO; }
   else if ( run_type == sistrip::invalid_ ) { return sistrip::UNDEFINED_RUN_TYPE; }
   else { return sistrip::UNKNOWN_RUN_TYPE; }

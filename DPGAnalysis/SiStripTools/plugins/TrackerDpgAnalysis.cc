@@ -126,6 +126,7 @@ class TrackerDpgAnalysis : public edm::EDAnalyzer {
       double sumPtSquared(const reco::Vertex&);
       float delay(const SiStripEventSummary&);
       std::map<uint32_t,float> delay(const std::vector<std::string>&);
+  int startOffset(uint16_t fecSlot, uint16_t fecRing, uint16_t cc, uint16_t address, uint16_t i2caddress);
 
    private:
       virtual void beginRun(const edm::Run&, const edm::EventSetup&) override;
@@ -198,9 +199,13 @@ class TrackerDpgAnalysis : public edm::EDAnalyzer {
       float bsX0_, bsY0_, bsZ0_, bsSigmaZ_, bsDxdz_, bsDydz_;
       float thrustValue_, thrustX_, thrustY_, thrustZ_, sphericity_, planarity_, aplanarity_, delay_;
       bool L1DecisionBits_[192], L1TechnicalBits_[64], HLTDecisionBits_[256];
-      uint32_t orbit_, orbitL1_, bx_, store_, time_;
+  uint32_t orbit_, orbitL1_, bx_, store_;
+  unsigned long long time_;
       uint16_t lumiSegment_, physicsDeclared_;
       char *moduleName_, *moduleId_, *PSUname_;
+  uint32_t daq1_,daq2_;
+  int delayStepSize_,delayRange_,nDelaySteps_;
+  int startOffset_,step_;
       std::string cablingFileName_;
       std::vector<std::string> delayFileNames_;
       edm::ParameterSet pset_;
@@ -229,6 +234,13 @@ TrackerDpgAnalysis::TrackerDpgAnalysis(const edm::ParameterSet& iConfig):hltConf
    functionality_tracks_           = iConfig.getUntrackedParameter<bool>("keepTracks",true);
    functionality_vertices_         = iConfig.getUntrackedParameter<bool>("keepVertices",true);
    functionality_events_           = iConfig.getUntrackedParameter<bool>("keepEvents",true);
+
+   delayStepSize_ = 1;
+   delayRange_ = 10;
+   if(iConfig.exists("delayStepSize"))delayStepSize_ = iConfig.getParameter<int>("delayStepSize");
+   if(iConfig.exists("delayRange"))delayRange_ = iConfig.getParameter<int>("delayRange");
+   nDelaySteps_ = 2*delayRange_/delayStepSize_ + 1;
+
 
    // parameters
    summaryToken_      = consumes<SiStripEventSummary>(edm::InputTag("siStripDigis"));
@@ -441,7 +453,7 @@ TrackerDpgAnalysis::TrackerDpgAnalysis(const edm::ParameterSet& iConfig):hltConf
    event_->Branch("orbitL1",&orbitL1_,"orbitL1/i");
    event_->Branch("bx",&bx_,"bx/i");
    event_->Branch("store",&store_,"store/i");
-   event_->Branch("time",&time_,"time/i");
+   event_->Branch("time",&time_,"time/l");
    event_->Branch("delay",&delay_,"delay/F");
    event_->Branch("lumiSegment",&lumiSegment_,"lumiSegment/s");
    event_->Branch("physicsDeclared",&physicsDeclared_,"physicsDeclared/s");
@@ -472,6 +484,12 @@ TrackerDpgAnalysis::TrackerDpgAnalysis(const edm::ParameterSet& iConfig):hltConf
    event_->Branch("planarity",&planarity_,"planarity/F");
    event_->Branch("aplanarity",&aplanarity_,"aplanarity/F");
    event_->Branch("MagneticField",&fBz_,"MagneticField/F");
+   event_->Branch("daq1",&daq1_,"daq1/I");
+   event_->Branch("daq2",&daq2_,"daq2/I");
+   event_->Branch("delayStepSize",&delayStepSize_,"delayStepSize/I");
+   event_->Branch("delayRange",&delayRange_,"delayRange/I");
+   event_->Branch("nDelaySteps",&nDelaySteps_,"nDelaySteps");
+   event_->Branch("step",&step_,"step/I");
 
    // cabling
    cablingFileName_ = iConfig.getUntrackedParameter<std::string>("PSUFileName","PSUmapping.csv");
@@ -497,6 +515,7 @@ TrackerDpgAnalysis::TrackerDpgAnalysis(const edm::ParameterSet& iConfig):hltConf
    readoutmap_->Branch("globalX",&globalX_,"globalX/F");
    readoutmap_->Branch("globalY",&globalY_,"globalY/F");
    readoutmap_->Branch("globalZ",&globalZ_,"globalZ/F");
+   readoutmap_->Branch("startOffset",&startOffset_,"startOffset/I");
 }
 
 TrackerDpgAnalysis::~TrackerDpgAnalysis()
@@ -534,6 +553,18 @@ TrackerDpgAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
      delay_ = delay(*summary.product());
    else
      delay_ = 0.;
+   step_ = 0;
+   SiStripEventSummary siSummary = *summary.product();
+   if(siSummary.runType() == sistrip::DELAY_RANDOM){
+     vector<uint32_t> params = siSummary.params();
+     //if(delayStepSize_ != (int)params[4] || delayRange_ != (int)params[3]){
+     //std::cerr<<"WARNING parameters do not match, start offsets will be wrong"<<std::endl;
+     //}
+     daq1_ = 0;
+     daq2_ = params[0];
+     step_ = params[1];
+     //std::cout<<params[0]<<" "<<params[1]<<" "<<params[2]<<" "<<params[3]<<" "<<params[4]<<std::endl;
+   }
 
    // -- Magnetic field
    ESHandle<MagneticField> MF;
@@ -1015,6 +1046,7 @@ TrackerDpgAnalysis::beginRun(const edm::Run& iRun, const edm::EventSetup& iSetup
 	 globalX_ = gp.x();
 	 globalY_ = gp.y();
 	 globalZ_ = gp.z();
+	 startOffset_ = startOffset(fecSlot_,fecRing_,ccuAdd_,ccuChan_,68);
 	 readoutmap_->Fill();
          tmap.fill_current_val(detid_,delay_);
        }
@@ -1442,6 +1474,21 @@ std::map<uint32_t,float> TrackerDpgAnalysis::delay(const std::vector<std::string
    }
    return delayMap;
 }
+int TrackerDpgAnalysis::startOffset(uint16_t fecSlot, uint16_t fecRing, uint16_t cc, uint16_t address, uint16_t i2caddress)
+{
+  int offset = 0;
+  offset += fecSlot;
+  offset *= 37;
+  offset += fecRing;
+  offset *= 31;
+  offset += cc;
+  offset *= 29;
+  offset += address;
+  offset *= 23;
+  offset += i2caddress;
+  return offset % nDelaySteps_ - delayRange_;
+}
+
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(TrackerDpgAnalysis);
